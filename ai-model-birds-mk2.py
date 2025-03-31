@@ -9,31 +9,50 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
+from pathlib import Path
+import imghdr
+
+from pathlib import Path
+import imghdr
+
+img_link=list(Path(os.getcwd()+"/images").glob(r'**/*.jpg'))
+
+count_num=0
+for lnk in img_link:
+    binary_img=open(lnk,'rb')
+    find_img=tf.compat.as_bytes('JFIF') in binary_img.peek(10)#The JFIF is a JPEG File Interchange Format (JFIF). It is a standard which we gauge if an image is corrupt or substandard
+    if not find_img:
+        count_num+=1
+        os.remove(str(lnk))
+print('Total %d pcs image delete from Dataset' % count_num)
+#this should help you delete the bad encoded
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 print("TensorFlow version: {}".format(tf.__version__))
 print("TensorFlow Datasets version: ",tfds.__version__)
 
 data = os.getcwd()+"/images"
 print(data)
-batch_size = 32
+batch_size = 64
 img_height = 180
 img_width = 180
-sleep(3)
+num_classes = 10
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
-  data,
-  validation_split=0.2,
-  subset="training",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
+	data,
+	validation_split=0.2,
+	subset="training",
+	seed=223,
+	image_size=(img_height, img_width),
+	batch_size=batch_size)
 
 val_ds = tf.keras.utils.image_dataset_from_directory(
-  data,
-  validation_split=0.2,
-  subset="validation",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
+	data,
+	validation_split=0.2,
+	subset="validation",
+	seed=223,
+	image_size=(img_height, img_width),
+	batch_size=batch_size)
 
 class_names = train_ds.class_names
 print(class_names)
@@ -42,17 +61,16 @@ import matplotlib.pyplot as plt
 
 plt.figure(figsize=(10, 10))
 for images, labels in train_ds.take(1):
-  for i in range(9):
-    ax = plt.subplot(3, 3, i + 1)
-    plt.imshow(images[i].numpy().astype("uint8"))
-    plt.title(class_names[labels[i]])
-    plt.axis("off")
+	for i in range(9):
+		ax = plt.subplot(3, 3, i + 1)
+		plt.imshow(images[i].numpy().astype("uint8"))
+		plt.title(class_names[labels[i]])
+		plt.axis("off")
 for image_batch, labels_batch in train_ds:
-  print(image_batch.shape)
-  print(labels_batch.shape)
-  break
+	print(image_batch.shape)
+	print(labels_batch.shape)
+	break
 AUTOTUNE = tf.data.AUTOTUNE
-
 train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 normalization_layer = layers.Rescaling(1./255)
@@ -60,9 +78,9 @@ normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
 print(normalized_ds)
 image_batch, labels_batch = next(iter(normalized_ds))
 first_image = image_batch[0]
+
 # Notice the pixel values are now in `[0,1]`.
 print(np.min(first_image), np.max(first_image))
-num_classes = len(class_names)
 
 model = Sequential([
   layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
